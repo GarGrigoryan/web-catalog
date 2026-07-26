@@ -66,5 +66,5 @@ jobs:
 
             # 5. Flush logs and restart/start process with PM2
             pm2 flush
-            pm2 restart online-catalog || pm2 start server.js --name "online-catalog"
+            pm2 restart online-catalog || pm2 start catalog-server.js --name "online-catalog"
             pm2 save
