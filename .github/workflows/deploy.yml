@@ -31,6 +31,7 @@ jobs:
         uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TS_OAUTH_SECRET }}
+          ping: ${{ secrets.SSH_HOST }}
 
       - name: Execute Deployment via SSH
         uses: appleboy/ssh-action@v1.0.3
