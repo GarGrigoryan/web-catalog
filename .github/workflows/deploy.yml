@@ -1,0 +1,62 @@
+name: Online Catalog CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Connect to Tailscale Network
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Execute Deployment via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            # 1. Force load Node environment variables
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+            export PATH=$PATH:$HOME/.npm-global/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin
+
+            # 2. Change into your catalog app directory on the Pi
+            # (Make sure to clone the repo into ~/online-catalog-app once manually on the Pi first)
+            cd ~/online-catalog-app
+
+            # 3. Pull latest main branch updates
+            git fetch origin main
+            git reset --hard origin/main
+
+            # 4. Install production dependencies
+            npm ci --omit=dev
+
+            # 5. Flush logs and restart/start catalog with PM2 on port 6000
+            pm2 flush
+            pm2 restart catalog-server.js --name "online-catalog" || pm2 start catalog-server.js --name "online-catalog"
+            pm2 save
