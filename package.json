@@ -20,8 +20,9 @@
   },
   "homepage": "https://github.com/GarGrigoryan/web-catalog#readme",
   "dependencies": {
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "cors": "^2.8.5"
+    "pg": "^8.22.0"
   }
 }
