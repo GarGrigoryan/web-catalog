@@ -4,6 +4,7 @@
   "description": "",
   "main": "catalog-server.js",
   "scripts": {
+    "start": "node catalog-server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -17,5 +18,10 @@
   "bugs": {
     "url": "https://github.com/GarGrigoryan/web-catalog/issues"
   },
-  "homepage": "https://github.com/GarGrigoryan/web-catalog#readme"
+  "homepage": "https://github.com/GarGrigoryan/web-catalog#readme",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
+  }
 }
