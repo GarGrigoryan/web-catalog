@@ -14,11 +14,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: '24'
 
       - name: Install Dependencies
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
   deploy:
     needs: test
@@ -31,7 +35,6 @@ jobs:
         uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TS_OAUTH_SECRET }}
-          ping: ${{ secrets.SSH_HOST }}
 
       - name: Execute Deployment via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -40,24 +43,28 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            # 1. Force load Node environment variables
+            # 1. Load Node environment variables and silence NVM prefix warning
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm use --delete-prefix default --silent 2>/dev/null || true
 
             export PATH=$PATH:$HOME/.npm-global/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin
 
-            # 2. Change into your catalog app directory on the Pi
-            # (Make sure to clone the repo into ~/online-catalog-app once manually on the Pi first)
-            cd ~/online-catalog-app
+            # 2. Change into web-catalog directory
+            cd ~/web-catalog || exit 1
 
             # 3. Pull latest main branch updates
             git fetch origin main
             git reset --hard origin/main
 
-            # 4. Install production dependencies
-            npm ci --omit=dev
+            # 4. Install production dependencies safely
+            if [ -f package-lock.json ]; then
+              npm ci --omit=dev
+            else
+              npm install --omit=dev
+            fi
 
-            # 5. Flush logs and restart/start catalog with PM2 on port 6000
+            # 5. Flush logs and restart/start process with PM2
             pm2 flush
-            pm2 restart catalog-server.js --name "online-catalog" || pm2 start catalog-server.js --name "online-catalog"
+            pm2 restart online-catalog || pm2 start server.js --name "online-catalog"
             pm2 save
